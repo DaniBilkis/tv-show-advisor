@@ -1,0 +1,110 @@
+import { useEffect, useState } from "react";
+import { TVShowAPI } from "./api/tv-show";
+import s from "./style.module.css";
+import { BACKDROP_BASE_URL } from "./config";
+import logoImg from "./assets/images/logo.png";
+
+import { TVShowDetail } from "./components/TVShowDetail/TVShowDetail";
+import { Logo } from "./components/Logo/Logo";
+import { TVShowList } from "./components/TVShowList/TVShowList";
+import { SearchBar } from "./components/SearchBar/SearchBar";
+
+export function App() {
+  const [currentTVShow, setCurrentTVShow] = useState();
+  const [recommendationList, setRecommendationList] = useState([]);
+
+  async function fetchPopulars() {
+    const popularTVShowList = await TVShowAPI.fetchPopulars();
+    if (popularTVShowList.length > 0) {
+      setCurrentTVShow(popularTVShowList[0]);
+    }
+  }
+
+  async function fetchRecommendations(tvShowId) {
+    const recommendedTVShowList = await TVShowAPI.fetchRecommendations(
+      tvShowId
+    );
+    if (recommendedTVShowList.length > 0) {
+      setRecommendationList(recommendedTVShowList.slice(0, 10));
+    }
+  }
+
+  async function fetchByTitle(title) {
+    const searchResponse = await TVShowAPI.fetchByTitle(title);
+    if (searchResponse.length > 0) {
+      setCurrentTVShow(searchResponse[0]);
+    }
+  }
+
+  useEffect(() => {
+    // this calls a function right away
+    // (async () => {
+    //   const popularTVShowList = await TVShowAPI.fetchPopular();
+    // })();
+    fetchPopulars();
+  }, []);
+
+  useEffect(() => {
+    if (currentTVShow) {
+      fetchRecommendations(currentTVShow.id);
+    }
+  }, [currentTVShow]);
+
+  console.log(currentTVShow);
+  console.log("Recoomended Shows --->" + recommendationList);
+
+  console.log(
+    currentTVShow
+      ? `${BACKDROP_BASE_URL}${currentTVShow.backdrop_path}`
+      : "None"
+  );
+
+  function updateCurrentTVShow(tvShow) {
+    setCurrentTVShow(tvShow);
+  }
+
+  return (
+    <div
+      className={s.main_container}
+      style={{
+        background: currentTVShow
+          ? `linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55)), url("${BACKDROP_BASE_URL}${currentTVShow.backdrop_path}") no-repeat center / cover`
+          : "black",
+      }}
+    >
+      <div className={s.header}>
+        <div className="row">
+          <div className="col-4">
+            <Logo
+              img={logoImg}
+              title="Whatowatch"
+              subtitle="Find a show you may like"
+            />
+          </div>
+          <div className="colmd-12 col-lg-4">
+            <SearchBar onSubmit={fetchByTitle} />
+          </div>
+        </div>
+      </div>
+      <div className={s.tv_show_detail}>
+        {currentTVShow && <TVShowDetail tvShow={currentTVShow} />}
+      </div>
+      <div className={s.recommended_tv_shows}>
+        {
+          currentTVShow && (
+            <TVShowList
+              onClickItem={updateCurrentTVShow}
+              tvShowList={recommendationList}
+            />
+          )
+          //   <TVShowListItem
+          //     tvShow={currentTVShow}
+          //     onClick={(tvShow) => {
+          //       console.log(`I've been clicked + ${tvShow.name}`);
+          //     }}
+          //   />
+        }
+      </div>
+    </div>
+  );
+}
